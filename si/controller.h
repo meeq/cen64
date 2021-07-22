@@ -30,6 +30,12 @@ struct eeprom {
   size_t size;
 };
 
+struct keyboard {
+  bool present;
+  bool home_pressed;
+  uint16_t keys_pressed[4];
+};
+
 struct si_controller {
   struct bus_controller *bus;
   const uint8_t *rom;
@@ -41,6 +47,7 @@ struct si_controller {
   uint8_t input[4];
   struct eeprom eeprom;
   struct controller controller[4];
+  struct keyboard keyboard;
 };
 
 cen64_cold int si_init(struct si_controller *si, struct bus_controller *bus,

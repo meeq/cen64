@@ -38,6 +38,7 @@ static int pif_perform_command(struct si_controller *si, unsigned channel,
 
 static int eeprom_read(struct eeprom *eeprom, uint8_t *send_buf, uint8_t send_bytes, uint8_t *recv_buf, uint8_t recv_bytes);
 static int eeprom_write(struct eeprom *eeprom, uint8_t *send_buf, uint8_t send_bytes, uint8_t *recv_buf, uint8_t recv_bytes);
+static int keyboard_read(struct keyboard *keyboard, uint8_t *send_buf, uint8_t send_bytes, uint8_t *recv_buf, uint8_t recv_bytes);
 
 // Initializes the SI.
 int si_init(struct si_controller *si, struct bus_controller *bus,
@@ -83,6 +84,16 @@ int si_init(struct si_controller *si, struct bus_controller *bus,
   // controllers
   memcpy(si->controller, controller, sizeof(struct controller) * 4);
 
+  // initialize keyboard
+  si->keyboard.present = false;
+  si->keyboard.home_pressed = false;
+  memset(&si->keyboard.keys_pressed[0], 0, sizeof(si->keyboard.keys_pressed));
+  for (int i = 0; i < 4; ++i) {
+    if (si->controller[i].type == CONTROLLER_KEYBOARD) {
+      si->keyboard.present = true;
+    }
+  }
+
   return 0;
 }
 
@@ -99,20 +110,12 @@ int pif_perform_command(struct si_controller *si,
     case 0xFF:
       switch(channel) {
         case 0:
-          // always return that controller 0 is connected so that users
-          // who don't specify a controller on command line will still
-          // have good experience
-          recv_buf[0] = 0x05;
-          recv_buf[1] = 0x00;
-          recv_buf[2] = si->controller[channel].pak == PAK_NONE ? 0x00 : 0x01;
-          break;
-
         case 1:
         case 2:
         case 3:
-          if (si->controller[channel].present) {
-            recv_buf[0] = 0x05;
-            recv_buf[1] = 0x00;
+          if (si->controller[channel].type != CONTROLLER_NONE) {
+            recv_buf[0] = si->controller[channel].type >> 8;
+            recv_buf[1] = si->controller[channel].type;
             recv_buf[2] = si->controller[channel].pak == PAK_NONE ? 0x00 : 0x01;
           }
           else {
@@ -224,6 +227,28 @@ int pif_perform_command(struct si_controller *si,
         return 1;
       }
       return rtc_write(send_buf, send_bytes, recv_buf, recv_bytes);
+
+    // Randnet Keyboard key press request
+    case 0x13:
+      switch(channel) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+          if (si->controller[channel].type == CONTROLLER_KEYBOARD) {
+            return keyboard_read(&si->keyboard, send_buf, send_bytes, recv_buf, recv_bytes);
+          }
+          else {
+            assert(0 && "Invalid controller type for Randnet Keyboard key press request.");
+            return 1;
+          }
+
+        default:
+          assert(0 && "Invalid channel for Randnet Keyboard key press request.");
+          return 1;
+      }
+
+      break;
 
     // Unimplemented command:
     default:
@@ -397,7 +422,6 @@ int write_si_regs(void *opaque, uint32_t address, uint32_t word, uint32_t dqm) {
   return 0;
 }
 
-
 int eeprom_read(struct eeprom *eeprom, uint8_t *send_buf, uint8_t send_bytes, uint8_t *recv_buf, uint8_t recv_bytes) {
   assert(send_bytes == 2 && recv_bytes == 8);
 
@@ -412,7 +436,7 @@ int eeprom_read(struct eeprom *eeprom, uint8_t *send_buf, uint8_t send_bytes, ui
 }
 
 static int eeprom_write(struct eeprom *eeprom, uint8_t *send_buf, uint8_t send_bytes, uint8_t *recv_buf, uint8_t recv_bytes) {
-  assert(send_bytes == 10);
+  assert(send_bytes == 10 && recv_bytes == 1);
 
   uint16_t address = send_buf[1] << 3;
 
@@ -422,4 +446,37 @@ static int eeprom_write(struct eeprom *eeprom, uint8_t *send_buf, uint8_t send_b
   }
 
   return 1;
+}
+
+static int keyboard_read(struct keyboard *keyboard, uint8_t *send_buf, uint8_t send_bytes, uint8_t *recv_buf, uint8_t recv_bytes) {
+  assert(send_bytes == 2 && recv_bytes == 7);
+
+  memset(recv_buf, 0, recv_bytes);
+
+  uint8_t count = 0;
+  uint16_t pressed[4] = { 0, };
+  uint16_t key;
+  for (int i = 0; i < 4; i++) {
+    key = keyboard->keys_pressed[i];
+    if (key) {
+      pressed[count++] = key;
+    }
+  }
+
+  // More than three keys pressed is an error status
+  if (count > 3) {
+    recv_buf[6] |= 0x10;
+  } else {
+    uint16_t * recv_halfwords = (uint16_t *)recv_buf;
+    recv_halfwords[0] = byteswap_16(pressed[0]);
+    recv_halfwords[1] = byteswap_16(pressed[1]);
+    recv_halfwords[2] = byteswap_16(pressed[2]);
+
+    // The home key is a status bit
+    if (keyboard->home_pressed) {
+      recv_buf[6] |= 0x01;
+    }
+  }
+
+  return 0;
 }

@@ -20,10 +20,124 @@ bool right_down;
 bool up_down;
 bool down_down;
 
+uint16_t randnet_keyboard_key_encode(unsigned key) {
+  switch (key) {
+    // 1st Row
+    case CEN64_KEY_ESCAPE:    return 0x0A08;
+    case CEN64_KEY_F1:        return 0x0B01;
+    case CEN64_KEY_F2:        return 0x0A01; 
+    case CEN64_KEY_F3:        return 0x0B08; 
+    case CEN64_KEY_F4:        return 0x0A07; 
+    case CEN64_KEY_F5:        return 0x0B07; 
+    case CEN64_KEY_F6:        return 0x0A02; 
+    case CEN64_KEY_F7:        return 0x0B02; 
+    case CEN64_KEY_F8:        return 0x0A03; 
+    case CEN64_KEY_F9:        return 0x0B03; 
+    case CEN64_KEY_F10:       return 0x0A04; 
+    case CEN64_KEY_F11:       return 0x0203; 
+    case CEN64_KEY_F12:       return 0x0B06;
+    case CEN64_KEY_NUMLOCK:   return 0x0A05;
+    // case UNKNOWN:          return 0x0B05;
+    // case UNKNOWN:          return 0x0208;
+    // case UNKNOWN:          return 0x0207;
+    // 2nd Row
+    // case UNKNOWN:          return 0x0D05;
+    case CEN64_KEY_1:         return 0x0C05;
+    case CEN64_KEY_2:         return 0x0505;
+    case CEN64_KEY_3:         return 0x0605;
+    case CEN64_KEY_4:         return 0x0705;
+    case CEN64_KEY_5:         return 0x0805;
+    case CEN64_KEY_6:         return 0x0905;
+    case CEN64_KEY_7:         return 0x0906;
+    case CEN64_KEY_8:         return 0x0806;
+    case CEN64_KEY_9:         return 0x0706;
+    case CEN64_KEY_0:         return 0x0606;
+    // case MISMATCH:         return 0x0506;
+    // case MISMATCH:         return 0x0C06;
+    case CEN64_KEY_BACKSPACE: return 0x0D06;
+    // 3rd Row
+    case CEN64_KEY_TAB:       return 0x0D01;
+    case CEN64_KEY_Q:         return 0x0C01;
+    case CEN64_KEY_W:         return 0x0501;
+    case CEN64_KEY_E:         return 0x0601;
+    case CEN64_KEY_R:         return 0x0701;
+    case CEN64_KEY_T:         return 0x0801;
+    case CEN64_KEY_Y:         return 0x0901;
+    case CEN64_KEY_U:         return 0x0904;
+    case CEN64_KEY_I:         return 0x0804;
+    case CEN64_KEY_O:         return 0x0704;
+    case CEN64_KEY_P:         return 0x0604;
+    // case MISMATCH:         return 0x0504;
+    // case MISMATCH:         return 0x0C04;
+    // case MISMATCH:         return 0x0406;
+    // 4th Row
+    case CEN64_KEY_CAPSLOCK:  return 0x0F05;
+    case CEN64_KEY_A:         return 0x0D07;
+    case CEN64_KEY_S:         return 0x0C07;
+    case CEN64_KEY_D:         return 0x0507;
+    case CEN64_KEY_F:         return 0x0607;
+    case CEN64_KEY_G:         return 0x0707;
+    case CEN64_KEY_H:         return 0x0807;
+    case CEN64_KEY_J:         return 0x0907;
+    case CEN64_KEY_K:         return 0x0903;
+    case CEN64_KEY_L:         return 0x0803;
+    // case MISMATCH:         return 0x0703;
+    // case MISMATCH:         return 0x0603;
+    case CEN64_KEY_RETURN:    return 0x0D04;
+    // 5th Row
+    case CEN64_KEY_LSHIFT:    return 0x0E01;
+    case CEN64_KEY_Z:         return 0x0D08;
+    case CEN64_KEY_X:         return 0x0C08;
+    case CEN64_KEY_C:         return 0x0508;
+    case CEN64_KEY_V:         return 0x0608;
+    case CEN64_KEY_B:         return 0x0708;
+    case CEN64_KEY_N:         return 0x0808;
+    case CEN64_KEY_M:         return 0x0908;
+    case CEN64_KEY_COMMA:     return 0x0902;
+    case CEN64_KEY_PERIOD:    return 0x0802;
+    case CEN64_KEY_SLASH:     return 0x0702;
+    case CEN64_KEY_UP:        return 0x0204;
+    case CEN64_KEY_RSHIFT:    return 0x0E06;
+    // 6th Row
+    case CEN64_KEY_LCTRL:     return 0x1107;
+    case CEN64_KEY_LMETA:     return 0x0F07;
+    // case MISMATCH:         return 0x1105;
+    case CEN64_KEY_LALT:      return 0x1008;
+    // case MISMATCH:         return 0x1002;
+    case CEN64_KEY_SPACE:     return 0x0602;
+    // case MISMATCH:         return 0x0E02;
+    // case MISMATCH:         return 0x1006;
+    case CEN64_KEY_END:       return 0x0206;
+    case CEN64_KEY_LEFT:      return 0x0205;
+    case CEN64_KEY_DOWN:      return 0x0305;
+    case CEN64_KEY_RIGHT:     return 0x0405;
+    default:                  return 0x0000;
+  }
+}
+
 void keyboard_press_callback(struct bus_controller *bus, unsigned key) {
   struct si_controller *si = bus->si;
 
   //fprintf(stderr, "os/input: Got keypress event: %u\n", key);
+
+  if (si->keyboard.present) {
+    if (key == CEN64_KEY_HOME) {
+      si->keyboard.home_pressed = true;
+      return;
+    }
+    uint16_t encoded = randnet_keyboard_key_encode(key);
+    if (encoded) {
+      uint16_t current;
+      for (int i = 0; i < 4; ++i) {
+        current = si->keyboard.keys_pressed[i];
+        if (current == 0 || current == encoded) {
+          si->keyboard.keys_pressed[i] = encoded;
+          break;
+        }
+      }
+    }
+    return;
+  }
 
   if (key == CEN64_KEY_LSHIFT || key == CEN64_KEY_RSHIFT) {
     shift_down = true;
@@ -80,6 +194,23 @@ void keyboard_release_callback(struct bus_controller *bus, unsigned key) {
   struct si_controller *si = bus->si;
 
   //fprintf(stderr, "os/input: Got keyrelease event: %u\n", key);
+
+  if (si->keyboard.present) {
+    if (key == CEN64_KEY_HOME) {
+      si->keyboard.home_pressed = false;
+      return;
+    }
+    uint16_t encoded = randnet_keyboard_key_encode(key);
+    if (encoded) {
+      for (int i = 0; i < 4; ++i) {
+        if (si->keyboard.keys_pressed[i] == encoded) {
+          si->keyboard.keys_pressed[i] = 0x0000;
+          break;
+        }
+      }
+    }
+    return;
+  }
 
   if (key == CEN64_KEY_LSHIFT || key == CEN64_KEY_RSHIFT) {
     shift_down = false;

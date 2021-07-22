@@ -38,7 +38,12 @@ cen64_cold static CEN64_THREAD_RETURN_TYPE run_device_thread(void *opaque);
 
 // Called when another simulation instance is desired.
 int cen64_main(int argc, const char **argv) {
-  struct controller controller[4] = { { 0, }, };
+  struct controller controller[4] = {
+    { CONTROLLER_STANDARD, 0, },
+    { CONTROLLER_NONE, 0, },
+    { CONTROLLER_NONE, 0, },
+    { CONTROLLER_NONE, 0, },
+  };
 	struct cen64_options options = default_cen64_options;
   options.controller = controller;
   struct rom_file ddipl, ddrom, pifrom, cart;
@@ -80,6 +85,12 @@ int cen64_main(int argc, const char **argv) {
     cen64_alloc_cleanup();
     return EXIT_FAILURE;
   }
+
+  // Always make sure a controller is connected in the first port so that
+  // users who don't specify a controller on the command line will still
+  // have a good experience
+  if (controller[0].type == CONTROLLER_NONE)
+    controller[0].type = CONTROLLER_STANDARD;
 
   memset(&ddipl, 0, sizeof(ddipl));
   memset(&ddrom, 0, sizeof(ddrom));

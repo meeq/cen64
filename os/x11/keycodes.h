@@ -58,6 +58,20 @@
 #define CEN64_KEY_RIGHT XK_Right
 #define CEN64_KEY_DOWN XK_Down
 
+// Function keys.
+#define CEN64_KEY_F1 XK_F1
+#define CEN64_KEY_F2 XK_F2
+#define CEN64_KEY_F3 XK_F3
+#define CEN64_KEY_F4 XK_F4
+#define CEN64_KEY_F5 XK_F5
+#define CEN64_KEY_F6 XK_F6
+#define CEN64_KEY_F7 XK_F7
+#define CEN64_KEY_F8 XK_F8
+#define CEN64_KEY_F9 XK_F9
+#define CEN64_KEY_F10 XK_F10
+#define CEN64_KEY_F11 XK_F11
+#define CEN64_KEY_F12 XK_F12
+
 // Other keys.
 #define CEN64_KEY_BSLASH XK_backslash
 #define CEN64_KEY_COMMA XK_comma
@@ -79,6 +93,14 @@
 #define CEN64_KEY_SEMICOLON XK_semicolon
 #define CEN64_KEY_SLASH XK_slash
 #define CEN64_KEY_SPACE XK_space
+#define CEN64_KEY_HOME XK_Home
+#define CEN64_KEY_ESCAPE XK_Escape
+#define CEN64_KEY_NUMLOCK XK_Num_Lock
+#define CEN64_KEY_BACKSPACE XK_BackSpace
+#define CEN64_KEY_TAB XK_Tab
+#define CEN64_KEY_CAPSLOCK XK_Caps_Lock
+#define CEN64_KEY_LMETA XK_Meta_L
+#define CEN64_KEY_END XK_End
 
 #endif
 

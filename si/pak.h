@@ -19,6 +19,16 @@
 #define MEMPAK_NUM_PAGES 128
 #define MEMPAK_PAGE_SIZE (MEMPAK_SIZE / MEMPAK_NUM_PAGES)
 
+enum controller_type {
+  CONTROLLER_NONE     = 0xFFFF,
+  CONTROLLER_UNKNOWN  = 0x0000,
+  CONTROLLER_STANDARD = 0x0005,
+  CONTROLLER_VRU      = 0x0001,
+  CONTROLLER_MOUSE    = 0x0200,
+  CONTROLLER_KEYBOARD = 0x0002,
+  CONTROLLER_TRAIN    = 0x0500,
+};
+
 enum pak_type {
   PAK_NONE = 0,
   PAK_MEM,
@@ -27,12 +37,13 @@ enum pak_type {
 };
 
 struct controller {
+  enum controller_type type;
+
   const char *mempak_path;
   struct save_file mempak_save;
 
   enum pak_type pak;
   int pak_enabled;
-  int present;
   
   // tpak stuff
   const char *tpak_rom_path;

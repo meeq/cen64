@@ -138,7 +138,7 @@ int parse_options(struct cen64_options *options, int argc, const char *argv[]) {
 
     else if (!strcmp(argv[i], "-controller")) {
       int num;
-      struct controller opt = { 0, };
+      struct controller opt = { CONTROLLER_NONE, 0, };
 
       if ((i + 1) >= (argc - 1)) {
         printf("-controller requires a controller description.\n\n");
@@ -195,12 +195,18 @@ int parse_controller_options(const char *str, int *num, struct controller *opt) 
     printf("Unable to dup a string. You're gonna have trouble running games.\n");
     exit(1);
   }
+
   *num = -1;
+  opt->type = CONTROLLER_STANDARD;
 
   token = strtok(opt_string, ",");
   while (token != NULL) {
     if (sscanf(token, "num=%d", num) == 1)
       ;
+    else if (strcmp(token, "type=mouse") == 0)
+      opt->type = CONTROLLER_MOUSE;
+    else if (strcmp(token, "type=keyboard") == 0)
+      opt->type = CONTROLLER_KEYBOARD;
     else if (strcmp(token, "pak=rumble") == 0)
       opt->pak = PAK_RUMBLE;
     else if (strcmp(token, "pak=transfer") == 0)
@@ -224,7 +230,8 @@ int parse_controller_options(const char *str, int *num, struct controller *opt) 
     goto err;
   }
 
-  --*num; // internally it's used as an index into an array
+  --*num; // adjust num so it can be used as an index into an array
+
   mempak_path[4095] = '\0';
   if (strlen(mempak_path) > 0)
     opt->mempak_path = strdup(mempak_path);
@@ -234,7 +241,6 @@ int parse_controller_options(const char *str, int *num, struct controller *opt) 
   tpak_save_path[4095] = '\0';
   if (strlen(tpak_save_path) > 0)
     opt->tpak_save_path = strdup(tpak_save_path);
-  opt->present = 1;
 
   free(opt_string);
   return 1;
