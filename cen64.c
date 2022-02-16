@@ -21,6 +21,9 @@
 #include "os/common/rom_file.h"
 #include "os/common/save_file.h"
 #include "os/cpuid.h"
+#ifdef _WIN32
+#include "os/winapi/console.h"
+#endif
 #include "pi/is_viewer.h"
 #include "thread.h"
 #include <stdlib.h>
@@ -148,8 +151,18 @@ int cen64_main(int argc, const char **argv) {
         break;
       case CART_DB_SAVE_TYPE_SRAM_256KBIT:
         if (options.sram_path == NULL) {
-          printf("Warning: cart saves to SRAM, but none specified (see -sram)\n");
+          printf("Warning: cart saves to 256kbit SRAM, but none specified (see -sram256k)\n");
           open_save_file(NULL, 0x8000, &sram, NULL);
+        } else if (options.sram_size != 0x8000) {
+          printf("Warning: cart saves to 256kbit SRAM, but different size specified (see -sram256k)\n");
+        }
+        break;
+      case CART_DB_SAVE_TYPE_SRAM_768KBIT:
+        if (options.sram_path == NULL) {
+          printf("Warning: cart saves to 768kbit SRAM, but none specified (see -sram768k)\n");
+          open_save_file(NULL, 0x18000, &sram, NULL);
+        } else if (options.sram_size != 0x18000) {
+          printf("Warning: cart saves to 768kbit SRAM, but different size specified (see -sram768k)\n");
         }
         break;
     }
@@ -167,7 +180,7 @@ int cen64_main(int argc, const char **argv) {
   }
 
   if (options.sram_path != NULL &&
-      open_save_file(options.sram_path, 0x8000, &sram, NULL)) {
+      open_save_file(options.sram_path, options.sram_size, &sram, NULL)) {
     cen64_alloc_cleanup();
     return EXIT_FAILURE;
   }
@@ -188,6 +201,9 @@ int cen64_main(int argc, const char **argv) {
       return EXIT_FAILURE;
     } else {
       is_in = &is;
+      #ifdef _WIN32
+      show_console();
+      #endif
     }
   }
 
